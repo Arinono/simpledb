@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 pub trait SimpleDB {
     fn set(&mut self, key: String, value: u32);
     fn get(&mut self, key: String) -> Option<&u32>;
@@ -7,30 +9,68 @@ pub trait SimpleDB {
     fn commit(&mut self) -> Result<(), String>;
 }
 
-pub struct InMemoryDB {}
+pub struct InMemoryDB {
+    db: Vec<HashMap<String, u32>>,
+}
 
 impl InMemoryDB {
     pub fn new() -> Self {
-        InMemoryDB {}
+        InMemoryDB {
+            db: vec![HashMap::new()],
+        }
     }
 }
 
 impl SimpleDB for InMemoryDB {
-    fn set(&mut self, key: String, value: u32) {}
-
-    fn get(&mut self, key: String) -> Option<&u32> {
-        None
+    fn set(&mut self, key: String, value: u32) {
+        if let Some(last) = self.db.last_mut() {
+            last.insert(key, value);
+        }
     }
 
-    fn unset(&mut self, key: String) {}
+    fn get(&mut self, key: String) -> Option<&u32> {
+        if let Some(last) = self.db.last() {
+            return last.get(&key);
+        } else {
+            None
+        }
+    }
 
-    fn begin_transaction(&mut self) {}
+    fn unset(&mut self, key: String) {
+        let last = self.db.last_mut().unwrap();
+        last.remove(&key);
+    }
+
+    fn begin_transaction(&mut self) {
+        if let Some(last) = self.db.last() {
+            self.db.push(last.clone());
+        } else {
+            self.db.push(HashMap::new());
+        }
+    }
 
     fn rollback(&mut self) -> Result<(), String> {
-        Err(String::from("not implemented"))
+        match self.db.pop() {
+            Some(_last) => {
+                if self.db.len() == 0 {
+                    return Err(String::from("No transactions in progress"))
+                }
+                Ok(())
+            },
+            None => Err(String::from("No transactions in progress"))
+        }
     }
 
     fn commit(&mut self) -> Result<(), String> {
-        Err(String::from("not implemented"))
+        match self.db.pop() {
+            Some(last) => {
+                if self.db.len() == 0 {
+                    return Err(String::from("No transactions in progress"))
+                }
+                self.db = vec![last];
+                Ok(())
+            },
+            None => Err(String::from("No transactions in progress"))
+        }
     }
 }
