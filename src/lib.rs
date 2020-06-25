@@ -44,8 +44,6 @@ impl SimpleDB for InMemoryDB {
     fn begin_transaction(&mut self) {
         if let Some(last) = self.db.last() {
             self.db.push(last.clone());
-        } else {
-            self.db.push(HashMap::new());
         }
     }
 
