@@ -42,9 +42,8 @@ impl SimpleDB for InMemoryDB {
     }
 
     fn begin_transaction(&mut self) {
-        if let Some(last) = self.db.last() {
-            self.db.push(last.clone());
-        }
+        let new_db = self.db.last().unwrap().clone();
+        self.db.push(new_db);
     }
 
     fn rollback(&mut self) -> Result<(), String> {
